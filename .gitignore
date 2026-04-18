@@ -1,0 +1,54 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Environment / secrets — NEVER commit these
+.env
+.env.*
+!.env.example
+
+# Build output
+dist/
+build/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Claude Code internal
+.claude/
+
+# Personal / temp files
+"Github personal access token.txt"
+"Here are feature ideas.txt"
+"New Text Document.txt"
+"starting local apps.txt"
+"create admin account.txt"
+usernames.txt
+httpsraw.githubusercontent.comeagye.txt
+export_summary_pdf.py
+summary.md
+"summary_April 13, 2026.md"
+HiveCollective-Session-Features-April17.md
+HiveCollective-Build-Summary*.md
+HiveCollective-Build-Summary*.pdf
+HiveCollective-Summary.pdf
+HiveCollective-Project-Outline.md
+"HiveCollective outline.pdf"
+"Missing features_April 17, 2026.docx"
+"~$ssing features_April 17, 2026.docx"
+files/
+SQL
+"password reset"
+"NEW FRONTPAGE DESIGN/"
