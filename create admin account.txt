@@ -1,0 +1,20 @@
+There's no UI for it — admin status is set directly in the database. Two ways:
+
+Option 1 — Promote an existing account
+
+Run this in your backend terminal (replace the username):
+
+cd "C:\Users\eagye\OneDrive\Desktop\my-platform\backend"
+node -e "
+const pool = require('./db');
+pool.query(\"UPDATE users SET is_admin = TRUE WHERE username = 'YOUR_USERNAME' RETURNING id, username, is_admin\")
+  .then(r => { console.log('Done:', r.rows); pool.end(); });
+"
+Option 2 — Register normally, then promote
+
+Register a new account at /register as usual
+Run the command above to promote it to admin
+Log out and back in — the ⚙ Admin button will appear in the navbar
+Your current admin account is already eagyeibo. If you're not seeing the Admin button, just log out and log back in — the session needs to refresh to pick up the is_admin flag.
+
+How do I create an admin account?

@@ -1,0 +1,53 @@
+cd C:\Users\eagye\OneDrive\Desktop\my-platform\backend
+node index.js
+
+
+cd C:\Users\eagye\OneDrive\Desktop\my-platform\frontend
+npm run dev
+Then open your browser and go to http://localhost:5173.
+
+
+For future updates, the workflow is just these 3 commands:
+bash
+
+git add src/
+git commit -m "Your message here"
+git push origin main
+
+
+octoer 17, 2025
+they want to kwno wien the supporting doc was sent tby the doctor.
+
+
+nurse for doctor kopolovic
+
+x32868
+
+
+1. We will guide them in a call 
+
+2. Chat with Gabriel
+
+Wendesday
+
+justin 1-2,
+
+Application survey
+
+We want to do the dependency mapping
+
+
+Collection
+Assessment
+How long to run?
+Export sizing, dependency mapping
+We massage to wave planning to dependenty mapping
+show them the wave planning
+show them wave plan (based on the tool)
+Take the wave plan with you app owners to review and approving
+
+
+
+
+
+

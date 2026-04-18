@@ -1,0 +1,48 @@
+Here are feature ideas that would add real value to HiveCollective:
+
+High Impact
+Search — Full-text search across problems by keyword (backend + search bar UI)
+Problem status tags — Open / In Progress / Resolved lifecycle with visual indicators
+Trending / Hot problems — Surface problems gaining votes/activity recently
+Leaderboard page — Top contributors ranked by score, problems solved, solutions credited
+Engagement
+Comments on solutions — Threaded discussion under each solution (separate from proposing a full solution)
+Bookmarks / Save problems — Users can bookmark problems to follow
+@mentions in solutions — Notify users when tagged in a solution
+Discovery & Reach
+Problem categories/tags — Beyond just scope (local/national), add topic tags like #health, #education, #infrastructure
+Map view — Visualize problems on a map by location_tag
+Share via WhatsApp — Deep-link sharing for mobile users (key for Africa-focused reach)
+Platform Health
+Report/flag content — Users flag inappropriate problems or solutions
+Admin dashboard — View platform stats, manage users/content
+
+====
+
+Stopping. Got it — let's break it up.
+
+Here are the 12 features grouped by effort. Which batch do you want to start with?
+
+Batch A — Quick wins (1-2 hours)
+
+WhatsApp share (already in the code actually — ShareBar has it)
+Search across problems
+Trending / hot problems toggle
+Leaderboard page
+Batch B — Problem enhancements
+
+Problem status tags (Open / In Progress / Resolved)
+Problem categories/tags (#health, #education, etc.)
+Batch C — Social & engagement
+
+Comments on solutions
+Bookmarks / save problems
+@mentions in solutions (with notifications)
+Batch D — Discovery
+
+Map view (problems plotted on a map)
+Batch E — Moderation & admin
+
+Report/flag content
+Admin dashboard
+Which batch (or specific features) do you want first?

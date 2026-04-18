@@ -1,0 +1,6 @@
+TOOLS
+
+Perfect. Here's what I'd recommend for your stack: Perfect. Here's what I'd recommend for your stack: 
+
+React for the frontend (what users see), Node.js + Express for the backend (the server logic), and 
+PostgreSQL for the database. It's a popular, well-documented combination with tons of learning resources — and Claude can help you at every step.React for the frontend (what users see), Node.js + Express for the backend (the server logic), and PostgreSQL for the database. It's a popular, well-documented combination with tons of learning resources — and Claude can help you at every step.
