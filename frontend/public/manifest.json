@@ -1,0 +1,20 @@
+{
+  "name": "HiveCollective",
+  "short_name": "HiveCollective",
+  "description": "Crowdsource solutions to real community problems.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1d4ed8",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["social", "productivity"],
+  "lang": "en"
+}
