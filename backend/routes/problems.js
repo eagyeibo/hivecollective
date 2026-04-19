@@ -111,7 +111,10 @@ router.get('/:id', async (req, res) => {
     const solutionsResult = await pool.query(
       `SELECT
         s.id, s.content, s.score, s.created_at,
-        u.username AS posted_by, u.id AS user_id
+        u.username AS posted_by, u.id AS user_id,
+        COALESCE((SELECT SUM(s2.score) FROM solutions s2 WHERE s2.user_id = u.id AND s2.is_removed = FALSE), 0) AS author_score,
+        COALESCE((SELECT COUNT(*) FROM solutions s2 WHERE s2.user_id = u.id AND s2.is_removed = FALSE), 0) AS author_solutions_count,
+        COALESCE((SELECT COUNT(*) FROM solutions s2 WHERE s2.user_id = u.id AND s2.is_implemented = TRUE), 0) AS author_implemented_count
        FROM solutions s
        JOIN users u ON u.id = s.user_id
        WHERE s.problem_id = $1

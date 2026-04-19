@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import API from '../config';
+import { getBadge } from '../utils/badges';
 
 function timeAgo(dateStr) {
   const diff = (Date.now() - new Date(dateStr)) / 1000;
@@ -95,7 +96,10 @@ export default function CommentSection({ solutionId }) {
             <div key={c.id} style={{ marginBottom: 10 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
                 <div style={{ flex: 1 }}>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent)', marginRight: 6 }}>{c.username}</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginRight: 6 }}>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent)' }}>{c.username}</span>
+                    {(() => { const b = getBadge(c.author_score, c.author_implemented_count, c.author_solutions_count); return b ? <span style={{ background: b.bg, border: `0.5px solid ${b.border}`, borderRadius: 20, padding: '1px 7px', fontSize: 10, color: b.color, fontWeight: 500 }}>{b.label}</span> : null; })()}
+                  </span>
                   <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{timeAgo(c.created_at)}</span>
                   <p style={{ fontSize: 13, color: 'var(--text)', margin: '3px 0 0', lineHeight: 1.5 }}>
                     <MentionText text={c.content} />

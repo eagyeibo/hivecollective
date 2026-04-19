@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import API from '../config';
 import CommentSection from './CommentSection';
 import ReportModal from './ReportModal';
+import { getBadge } from '../utils/badges';
 
 function MentionText({ text }) {
   const parts = text.split(/(@[a-zA-Z0-9_]+)/g);
@@ -106,7 +107,10 @@ export default function SolutionCard({ solution, problemId, isTop }) {
           <MentionText text={solution.content} />
         </p>
         <div style={{ fontSize: 12, color: 'var(--text-muted)', display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
-          <span>by <span style={{ color: 'var(--accent)', fontWeight: 600 }}>{solution.posted_by}</span></span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            by <span style={{ color: 'var(--accent)', fontWeight: 600 }}>{solution.posted_by}</span>
+            {(() => { const b = getBadge(solution.author_score, solution.author_implemented_count, solution.author_solutions_count); return b ? <span style={{ background: b.bg, border: `0.5px solid ${b.border}`, borderRadius: 20, padding: '2px 8px', fontSize: 10, color: b.color, fontWeight: 500 }}>{b.label}</span> : null; })()}
+          </span>
           <span>{new Date(solution.created_at).toLocaleDateString()}</span>
           {isOwnSolution && <span style={{ color: 'var(--text-muted)' }}>your solution</span>}
           {isLoggedIn && !isOwnSolution && (

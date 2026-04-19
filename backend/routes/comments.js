@@ -14,7 +14,10 @@ router.get('/:solutionId/comments', async (req, res) => {
 
   try {
     const result = await pool.query(
-      `SELECT c.id, c.content, c.created_at, u.username, u.id AS user_id
+      `SELECT c.id, c.content, c.created_at, u.username, u.id AS user_id,
+        COALESCE((SELECT SUM(s.score) FROM solutions s WHERE s.user_id = u.id AND s.is_removed = FALSE), 0) AS author_score,
+        COALESCE((SELECT COUNT(*) FROM solutions s WHERE s.user_id = u.id AND s.is_removed = FALSE), 0) AS author_solutions_count,
+        COALESCE((SELECT COUNT(*) FROM solutions s WHERE s.user_id = u.id AND s.is_implemented = TRUE), 0) AS author_implemented_count
        FROM comments c
        JOIN users u ON u.id = c.user_id
        WHERE c.solution_id = $1
