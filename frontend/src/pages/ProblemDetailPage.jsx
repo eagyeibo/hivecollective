@@ -133,11 +133,11 @@ export default function ProblemDetailPage() {
         <meta property="og:description" content={ogDescription} />
         <meta property="og:type" content="article" />
         <meta property="og:url" content={window.location.href} />
-        <meta property="og:image" content={`https://hivecollective-frontend.vercel.app/og-image.svg`} />
+        <meta property="og:image" content={`https://hivecollective-frontend.vercel.app/og-image.png`} />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={`${problem.title} — HiveCollective`} />
         <meta name="twitter:description" content={ogDescription} />
-        <meta name="twitter:image" content={`https://hivecollective-frontend.vercel.app/og-image.svg`} />
+        <meta name="twitter:image" content={`https://hivecollective-frontend.vercel.app/og-image.png`} />
       </Helmet>
 
       {/* Back link + actions */}
