@@ -2,7 +2,7 @@ const express = require('express');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 const pool = require('../db');
 
 // Auto-create password_reset_tokens table
@@ -28,17 +28,8 @@ pool.query(`
   );
 `).catch(err => console.error('Failed to set up email verification:', err));
 
-function createMailTransport() {
-  return nodemailer.createTransport({
-    host:   process.env.SMTP_HOST,
-    port:   parseInt(process.env.SMTP_PORT || '587'),
-    secure: process.env.SMTP_SECURE === 'true',
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-  });
-}
+const resend = new Resend(process.env.RESEND_API_KEY);
+const EMAIL_FROM = process.env.EMAIL_FROM || 'HiveCollective <onboarding@resend.dev>';
 
 async function sendVerificationEmail(userId, email, username) {
   const token = crypto.randomBytes(32).toString('hex');
@@ -55,9 +46,8 @@ async function sendVerificationEmail(userId, email, username) {
   const verifyLink = `${appUrl}/verify-email?token=${token}`;
 
   try {
-    const transport = createMailTransport();
-    await transport.sendMail({
-      from: process.env.SMTP_FROM || process.env.SMTP_USER,
+    await resend.emails.send({
+      from: EMAIL_FROM,
       to: email,
       subject: 'Verify your HiveCollective email',
       html: `
@@ -79,7 +69,7 @@ async function sendVerificationEmail(userId, email, username) {
       `,
     });
   } catch (mailErr) {
-    console.error('Verification email failed (SMTP not configured?):', mailErr.message);
+    console.error('Verification email failed:', mailErr.message);
   }
 }
 
@@ -410,35 +400,30 @@ router.post('/forgot-password', async (req, res) => {
     const appUrl = process.env.APP_URL || 'http://localhost:5173';
     const resetLink = `${appUrl}/reset-password?token=${token}`;
 
-    // Fire-and-forget — don't block the response on SMTP
-    try {
-      const transport = createMailTransport();
-      transport.sendMail({
-        from: process.env.SMTP_FROM || process.env.SMTP_USER,
-        to: email,
-        subject: 'Reset your HiveCollective password',
-        html: `
-          <div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#0d0d14;color:#e2e0f0;border-radius:12px;">
-            <div style="font-size:22px;font-weight:600;color:#a78bfa;margin-bottom:8px;">HiveCollective</div>
-            <h2 style="font-size:18px;font-weight:500;margin:0 0 16px;">Password Reset</h2>
-            <p style="font-size:14px;color:#aaa;line-height:1.6;margin-bottom:24px;">
-              Hi <strong style="color:#e2e0f0;">${user.username}</strong>,<br><br>
-              We received a request to reset your password. Click the button below to choose a new one.
-              This link expires in <strong>1 hour</strong>.
-            </p>
-            <a href="${resetLink}" style="display:inline-block;background:#7c3aed;color:#fff;text-decoration:none;padding:12px 28px;border-radius:8px;font-size:14px;font-weight:500;">
-              Reset Password
-            </a>
-            <p style="font-size:12px;color:#555;margin-top:24px;line-height:1.5;">
-              If you didn't request this, you can safely ignore this email.
-              Your password will not change until you click the link above and create a new one.
-            </p>
-          </div>
-        `,
-      });
-    } catch (mailErr) {
-      console.error('Password reset email failed (SMTP not configured?):', mailErr.message);
-    }
+    // Fire-and-forget — don't block the response on email send
+    resend.emails.send({
+      from: EMAIL_FROM,
+      to: email,
+      subject: 'Reset your HiveCollective password',
+      html: `
+        <div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#0d0d14;color:#e2e0f0;border-radius:12px;">
+          <div style="font-size:22px;font-weight:600;color:#a78bfa;margin-bottom:8px;">HiveCollective</div>
+          <h2 style="font-size:18px;font-weight:500;margin:0 0 16px;">Password Reset</h2>
+          <p style="font-size:14px;color:#aaa;line-height:1.6;margin-bottom:24px;">
+            Hi <strong style="color:#e2e0f0;">${user.username}</strong>,<br><br>
+            We received a request to reset your password. Click the button below to choose a new one.
+            This link expires in <strong>1 hour</strong>.
+          </p>
+          <a href="${resetLink}" style="display:inline-block;background:#7c3aed;color:#fff;text-decoration:none;padding:12px 28px;border-radius:8px;font-size:14px;font-weight:500;">
+            Reset Password
+          </a>
+          <p style="font-size:12px;color:#555;margin-top:24px;line-height:1.5;">
+            If you didn't request this, you can safely ignore this email.
+            Your password will not change until you click the link above and create a new one.
+          </p>
+        </div>
+      `,
+    }).catch(err => console.error('Password reset email failed:', err.message));
 
     return res.json({ message: 'If that email is registered, you will receive a reset link shortly.' });
   } catch (err) {

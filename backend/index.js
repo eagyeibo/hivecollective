@@ -20,6 +20,7 @@ const feedRoutes         = require('./routes/feed');
 
 const app = express();
 
+app.set('trust proxy', 1); // Required for rate limiting behind Railway's proxy
 app.use(cors());
 app.use(express.json());
 
