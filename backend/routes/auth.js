@@ -28,8 +28,8 @@ pool.query(`
   );
 `).catch(err => console.error('Failed to set up email verification:', err));
 
-const resend = new Resend(process.env.RESEND_API_KEY);
 const EMAIL_FROM = process.env.EMAIL_FROM || 'HiveCollective <onboarding@resend.dev>';
+function getResend() { return new Resend(process.env.RESEND_API_KEY); }
 
 async function sendVerificationEmail(userId, email, username) {
   const token = crypto.randomBytes(32).toString('hex');
@@ -46,7 +46,7 @@ async function sendVerificationEmail(userId, email, username) {
   const verifyLink = `${appUrl}/verify-email?token=${token}`;
 
   try {
-    await resend.emails.send({
+    await getResend().emails.send({
       from: EMAIL_FROM,
       to: email,
       subject: 'Verify your HiveCollective email',
@@ -401,7 +401,7 @@ router.post('/forgot-password', async (req, res) => {
     const resetLink = `${appUrl}/reset-password?token=${token}`;
 
     // Fire-and-forget — don't block the response on email send
-    resend.emails.send({
+    getResend().emails.send({
       from: EMAIL_FROM,
       to: email,
       subject: 'Reset your HiveCollective password',
