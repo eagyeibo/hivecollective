@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0d0d14"/>
+      <stop offset="60%" style="stop-color:#1a0a2e"/>
+      <stop offset="100%" style="stop-color:#0d1a1a"/>
+    </linearGradient>
+    <linearGradient id="bar" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#10b981"/>
+      <stop offset="50%" style="stop-color:#7c3aed"/>
+      <stop offset="100%" style="stop-color:#a855f7"/>
+    </linearGradient>
+    <linearGradient id="logo" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981"/>
+      <stop offset="100%" style="stop-color:#7c3aed"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bg)"/>
+
+  <!-- Top accent bar -->
+  <rect width="1200" height="7" fill="url(#bar)"/>
+
+  <!-- Subtle hex grid pattern -->
+  <g opacity="0.06" stroke="#a78bfa" stroke-width="1" fill="none">
+    <polygon points="980,80 1010,63 1040,80 1040,114 1010,131 980,114"/>
+    <polygon points="1040,80 1070,63 1100,80 1100,114 1070,131 1040,114"/>
+    <polygon points="1100,80 1130,63 1160,80 1160,114 1130,131 1100,114"/>
+    <polygon points="1010,131 1040,114 1070,131 1070,165 1040,182 1010,165"/>
+    <polygon points="1070,131 1100,114 1130,131 1130,165 1100,182 1070,165"/>
+    <polygon points="1130,131 1160,114 1190,131 1190,165 1160,182 1130,165"/>
+    <polygon points="980,182 1010,165 1040,182 1040,216 1010,233 980,216"/>
+    <polygon points="1040,182 1070,165 1100,182 1100,216 1070,233 1040,216"/>
+  </g>
+
+  <!-- Logo icon -->
+  <rect x="72" y="72" width="56" height="56" rx="14" fill="url(#logo)"/>
+  <text x="100" y="113" font-family="system-ui" font-size="32" fill="white" text-anchor="middle">⬡</text>
+
+  <!-- Logo text -->
+  <text x="144" y="112" font-family="system-ui, sans-serif" font-size="30" font-weight="600" fill="#a78bfa">HiveCollective</text>
+
+  <!-- Main headline -->
+  <text x="72" y="280" font-family="system-ui, sans-serif" font-size="62" font-weight="700" fill="#e2e0f0">Solutions for</text>
+  <text x="72" y="360" font-family="system-ui, sans-serif" font-size="62" font-weight="700" fill="#e2e0f0">Community Problems</text>
+
+  <!-- Subtext -->
+  <text x="72" y="430" font-family="system-ui, sans-serif" font-size="26" fill="#888">Crowdsource ideas that matter · Vote · Collaborate</text>
+
+  <!-- Bottom tag -->
+  <rect x="72" y="510" width="300" height="48" rx="10" fill="rgba(124,58,237,0.2)" stroke="rgba(139,92,246,0.4)" stroke-width="1"/>
+  <text x="222" y="540" font-family="system-ui, sans-serif" font-size="20" fill="#a78bfa" text-anchor="middle">hivecollective-frontend.vercel.app</text>
+</svg>
