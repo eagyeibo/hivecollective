@@ -1,33 +1,16 @@
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 const pool = require('../db');
 
-function isConfigured() {
-  return (
-    process.env.SMTP_HOST &&
-    process.env.SMTP_USER &&
-    process.env.SMTP_PASS &&
-    process.env.SMTP_USER !== 'your-email@gmail.com'
-  );
-}
+function getResend() { return new Resend(process.env.RESEND_API_KEY); }
+const EMAIL_FROM = process.env.EMAIL_FROM || 'HiveCollective <onboarding@resend.dev>';
 
 async function sendEmail(to, subject, html) {
-  if (!isConfigured()) return;
-  const transport = nodemailer.createTransport({
-    host:   process.env.SMTP_HOST,
-    port:   parseInt(process.env.SMTP_PORT || '587'),
-    secure: process.env.SMTP_SECURE === 'true',
-    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-  });
-  await transport.sendMail({
-    from: process.env.SMTP_FROM || process.env.SMTP_USER,
-    to,
-    subject,
-    html,
-  });
+  if (!process.env.RESEND_API_KEY) return;
+  await getResend().emails.send({ from: EMAIL_FROM, to, subject, html });
 }
 
 async function sendNotificationEmail(userId, subject, bodyHtml) {
-  if (!isConfigured()) return;
+  if (!process.env.RESEND_API_KEY) return;
   try {
     const result = await pool.query('SELECT email FROM users WHERE id = $1', [userId]);
     if (result.rows.length === 0) return;
