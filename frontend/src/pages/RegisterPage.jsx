@@ -46,6 +46,9 @@ export default function RegisterPage() {
   const [form, setForm] = useState({ username: '', email: '', password: '', preferred_language: 'en' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [registered, setRegistered] = useState(null); // { email, username } after success
+  const [resending, setResending] = useState(false);
+  const [resent, setResent] = useState(false);
 
   function handleChange(e) { setForm({ ...form, [e.target.name]: e.target.value }); }
 
@@ -61,12 +64,79 @@ export default function RegisterPage() {
       const data = await res.json();
       if (!res.ok) { setError(data.error || 'Registration failed.'); return; }
       login(data.user, data.token);
-      navigate('/welcome');
+      setRegistered({ email: form.email, username: form.username });
     } catch {
       setError(t('errors.couldNotConnect'));
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleResend() {
+    const token = localStorage.getItem('hc_token');
+    if (!token) return;
+    setResending(true);
+    try {
+      await fetch(`${API}/auth/resend-verification`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setResent(true);
+    } catch {
+      // silent
+    } finally {
+      setResending(false);
+    }
+  }
+
+  if (registered) {
+    return (
+      <div style={{
+        minHeight: 'calc(100svh - 56px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '40px 20px',
+      }}>
+        <div style={{
+          width: '100%', maxWidth: 420,
+          background: 'var(--card-bg-strong)',
+          border: '1px solid rgba(52,211,153,0.25)',
+          borderRadius: 'var(--radius-lg)', padding: '40px',
+          boxShadow: '0 24px 64px rgba(0,0,0,0.6)',
+          textAlign: 'center',
+          animation: 'fadeUp 0.4s ease both',
+        }}>
+          <div style={{ fontSize: 40, marginBottom: 16 }}>📬</div>
+          <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-h)', marginBottom: 8, fontFamily: 'var(--heading)' }}>
+            Check your inbox
+          </h2>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: 8 }}>
+            We sent a verification link to
+          </p>
+          <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--accent)', marginBottom: 20 }}>
+            {registered.email}
+          </p>
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: 28 }}>
+            Click the link in the email to activate your account. The link expires in 24 hours.
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center' }}>
+            <button onClick={() => navigate('/problems')} style={{ padding: '10px 24px', fontSize: 14, width: '100%' }}>
+              Continue to HiveCollective →
+            </button>
+            {resent ? (
+              <p style={{ fontSize: 12, color: '#2dd4bf', marginTop: 4 }}>A new link has been sent.</p>
+            ) : (
+              <button
+                onClick={handleResend}
+                disabled={resending}
+                style={{ padding: '9px 20px', fontSize: 12, background: 'transparent', border: '0.5px solid var(--border)', color: 'var(--text-muted)', borderRadius: 8, cursor: 'pointer', width: '100%' }}
+              >
+                {resending ? 'Sending…' : "Didn't get it? Resend email"}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

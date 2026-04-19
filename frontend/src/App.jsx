@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Navbar from './components/Navbar';
 import RegisterPage from './pages/RegisterPage';
 import LoginPage from './pages/LoginPage';
@@ -17,10 +17,12 @@ import SettingsPage from './pages/SettingsPage';
 import ProfilePage from './pages/ProfilePage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
+import VerifyEmailPage from './pages/VerifyEmailPage';
 import WelcomePage from './pages/WelcomePage';
 import FeedPage from './pages/FeedPage';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from './context/AuthContext';
+import API from './config';
 
 // ── Animated hex canvas background ───────────────────
 function HexCanvas() {
@@ -238,10 +240,63 @@ function AdminRoute({ children }) {
   return user?.is_admin ? children : null;
 }
 
+function UnverifiedBanner() {
+  const { user, token } = useAuth();
+  const navigate = useNavigate();
+  const [resending, setResending] = useState(false);
+  const [resent, setResent] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
+
+  if (!user || user.email_verified !== false || dismissed) return null;
+
+  async function resend() {
+    setResending(true);
+    try {
+      await fetch(`${API}/auth/resend-verification`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setResent(true);
+    } catch { /* silent */ }
+    finally { setResending(false); }
+  }
+
+  return (
+    <div style={{
+      background: 'rgba(124,58,237,0.12)',
+      borderBottom: '1px solid rgba(139,92,246,0.2)',
+      padding: '10px 20px',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      gap: 16, flexWrap: 'wrap', fontSize: 13,
+    }}>
+      <span style={{ color: 'var(--text-muted)' }}>
+        📧 Please verify your email address to unlock all features.
+      </span>
+      {resent ? (
+        <span style={{ color: '#2dd4bf', fontSize: 12 }}>Email sent!</span>
+      ) : (
+        <button
+          onClick={resend}
+          disabled={resending}
+          style={{ fontSize: 12, padding: '4px 12px', background: 'rgba(139,92,246,0.15)', border: '0.5px solid rgba(139,92,246,0.35)', borderRadius: 6, color: '#a78bfa', cursor: 'pointer' }}
+        >
+          {resending ? 'Sending…' : 'Resend link'}
+        </button>
+      )}
+      <button
+        onClick={() => setDismissed(true)}
+        style={{ fontSize: 16, background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', lineHeight: 1, padding: 0 }}
+        title="Dismiss"
+      >×</button>
+    </div>
+  );
+}
+
 function Layout({ children }) {
   return (
     <>
       <Navbar />
+      <UnverifiedBanner />
       <main>{children}</main>
     </>
   );
@@ -271,6 +326,7 @@ function App() {
           <Route path="/feed"              element={<FeedPage />} />
           <Route path="/forgot-password"  element={<ForgotPasswordPage />} />
           <Route path="/reset-password"   element={<ResetPasswordPage />} />
+          <Route path="/verify-email"     element={<VerifyEmailPage />} />
         </Routes>
       </Layout>
     </BrowserRouter>

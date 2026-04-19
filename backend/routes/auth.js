@@ -16,6 +16,18 @@ pool.query(`
   )
 `).catch(err => console.error('Failed to create password_reset_tokens table:', err));
 
+// Email verification: add column (TRUE for existing users) + tokens table
+pool.query(`
+  ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN NOT NULL DEFAULT TRUE;
+  CREATE TABLE IF NOT EXISTS email_verification_tokens (
+    id         SERIAL PRIMARY KEY,
+    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token_hash TEXT NOT NULL,
+    expires_at TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+  );
+`).catch(err => console.error('Failed to set up email verification:', err));
+
 function createMailTransport() {
   return nodemailer.createTransport({
     host:   process.env.SMTP_HOST,
@@ -26,6 +38,49 @@ function createMailTransport() {
       pass: process.env.SMTP_PASS,
     },
   });
+}
+
+async function sendVerificationEmail(userId, email, username) {
+  const token = crypto.randomBytes(32).toString('hex');
+  const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+  await pool.query('DELETE FROM email_verification_tokens WHERE user_id = $1', [userId]);
+  await pool.query(
+    'INSERT INTO email_verification_tokens (user_id, token_hash, expires_at) VALUES ($1, $2, $3)',
+    [userId, tokenHash, expiresAt]
+  );
+
+  const appUrl = process.env.APP_URL || 'http://localhost:5173';
+  const verifyLink = `${appUrl}/verify-email?token=${token}`;
+
+  try {
+    const transport = createMailTransport();
+    await transport.sendMail({
+      from: process.env.SMTP_FROM || process.env.SMTP_USER,
+      to: email,
+      subject: 'Verify your HiveCollective email',
+      html: `
+        <div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#0d0d14;color:#e2e0f0;border-radius:12px;">
+          <div style="font-size:22px;font-weight:600;color:#a78bfa;margin-bottom:8px;">HiveCollective</div>
+          <h2 style="font-size:18px;font-weight:500;margin:0 0 16px;">Confirm your email address</h2>
+          <p style="font-size:14px;color:#aaa;line-height:1.6;margin-bottom:24px;">
+            Hi <strong style="color:#e2e0f0;">${username}</strong>,<br><br>
+            Thanks for joining HiveCollective. Click the button below to verify your email address.
+            This link expires in <strong>24 hours</strong>.
+          </p>
+          <a href="${verifyLink}" style="display:inline-block;background:#7c3aed;color:#fff;text-decoration:none;padding:12px 28px;border-radius:8px;font-size:14px;font-weight:500;">
+            Verify Email
+          </a>
+          <p style="font-size:12px;color:#555;margin-top:24px;line-height:1.5;">
+            If you didn't create a HiveCollective account, you can safely ignore this email.
+          </p>
+        </div>
+      `,
+    });
+  } catch (mailErr) {
+    console.error('Verification email failed (SMTP not configured?):', mailErr.message);
+  }
 }
 
 const router = express.Router();
@@ -72,11 +127,11 @@ router.post('/register', async (req, res) => {
     // 6. Hash the password
     const password_hash = await bcrypt.hash(password, SALT_ROUNDS);
 
-    // 7. Insert new user
+    // 7. Insert new user (email_verified starts as FALSE — must confirm email)
     const result = await pool.query(
-      `INSERT INTO users (username, email, password_hash, preferred_language)
-       VALUES ($1, $2, $3, $4)
-       RETURNING id, username, email, preferred_language, created_at`,
+      `INSERT INTO users (username, email, password_hash, preferred_language, email_verified)
+       VALUES ($1, $2, $3, $4, FALSE)
+       RETURNING id, username, email, preferred_language, email_verified, created_at`,
       [username, email.toLowerCase(), password_hash, preferred_language]
     );
 
@@ -89,6 +144,9 @@ router.post('/register', async (req, res) => {
       { expiresIn: '7d' }
     );
 
+    // 9. Send verification email (non-blocking)
+    sendVerificationEmail(user.id, user.email, user.username).catch(() => {});
+
     return res.status(201).json({
       message: 'Account created successfully.',
       token,
@@ -97,6 +155,7 @@ router.post('/register', async (req, res) => {
         username: user.username,
         email: user.email,
         preferred_language: user.preferred_language,
+        email_verified: user.email_verified,
         created_at: user.created_at,
       },
     });
@@ -121,7 +180,7 @@ router.post('/login', async (req, res) => {
   try {
     // 2. Look up user by email
     const result = await pool.query(
-      'SELECT id, username, email, password_hash, preferred_language, is_admin FROM users WHERE email = $1',
+      'SELECT id, username, email, password_hash, preferred_language, is_admin, email_verified FROM users WHERE email = $1',
       [email.toLowerCase()]
     );
 
@@ -154,6 +213,7 @@ router.post('/login', async (req, res) => {
         email: user.email,
         preferred_language: user.preferred_language,
         is_admin: user.is_admin,
+        email_verified: user.email_verified,
       },
     });
 
@@ -423,6 +483,63 @@ router.post('/reset-password', async (req, res) => {
   } catch (err) {
     console.error('Reset password error:', err);
     return res.status(500).json({ error: 'Server error. Please try again.' });
+  }
+});
+
+// ─────────────────────────────────────────
+// GET /api/auth/verify-email?token=xxx
+// Verifies the token and marks the user's email as verified
+// ─────────────────────────────────────────
+router.get('/verify-email', async (req, res) => {
+  const { token } = req.query;
+  if (!token) return res.status(400).json({ error: 'Token is required.' });
+
+  try {
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    const result = await pool.query(
+      `SELECT user_id FROM email_verification_tokens
+       WHERE token_hash = $1 AND expires_at > NOW()`,
+      [tokenHash]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(400).json({ error: 'This verification link is invalid or has expired.' });
+    }
+
+    const { user_id } = result.rows[0];
+    await pool.query('UPDATE users SET email_verified = TRUE WHERE id = $1', [user_id]);
+    await pool.query('DELETE FROM email_verification_tokens WHERE user_id = $1', [user_id]);
+
+    return res.json({ message: 'Email verified successfully.' });
+  } catch (err) {
+    console.error('Verify email error:', err);
+    return res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+// ─────────────────────────────────────────
+// POST /api/auth/resend-verification
+// Protected — resend verification email to the logged-in user
+// ─────────────────────────────────────────
+router.post('/resend-verification', authMiddleware, async (req, res) => {
+  const user_id = req.user.id;
+
+  try {
+    const result = await pool.query(
+      'SELECT username, email, email_verified FROM users WHERE id = $1',
+      [user_id]
+    );
+    const user = result.rows[0];
+
+    if (user.email_verified) {
+      return res.status(400).json({ error: 'Your email is already verified.' });
+    }
+
+    await sendVerificationEmail(user_id, user.email, user.username);
+    return res.json({ message: 'Verification email sent.' });
+  } catch (err) {
+    console.error('Resend verification error:', err);
+    return res.status(500).json({ error: 'Server error.' });
   }
 });
 
