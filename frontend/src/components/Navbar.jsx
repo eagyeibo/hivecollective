@@ -105,11 +105,14 @@ export default function Navbar() {
 
       {/* Centre nav — desktop */}
       <div className="nav-center" style={{ display: 'flex', gap: 2 }}>
-        <button onClick={() => navigate('/problems')}    style={navLink(isActive('/problems'))}>   {t('nav.problems')}    </button>
-        {user?.is_admin && (
-          <button onClick={() => navigate('/leaderboard')} style={navLink(isActive('/leaderboard'))}>{t('nav.leaderboard')} </button>
+        <button onClick={() => navigate('/problems')} style={navLink(isActive('/problems'))}>{t('nav.problems')}</button>
+        {isLoggedIn && (
+          <button onClick={() => navigate('/feed')} style={navLink(isActive('/feed'))}>Feed</button>
         )}
-        <button onClick={() => navigate('/map')}         style={navLink(isActive('/map'))}>        {t('nav.map')}         </button>
+        {user?.is_admin && (
+          <button onClick={() => navigate('/leaderboard')} style={navLink(isActive('/leaderboard'))}>{t('nav.leaderboard')}</button>
+        )}
+        <button onClick={() => navigate('/map')} style={navLink(isActive('/map'))}>{t('nav.map')}</button>
       </div>
 
       {/* Right — desktop */}

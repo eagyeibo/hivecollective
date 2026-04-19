@@ -61,7 +61,7 @@ export default function RegisterPage() {
       const data = await res.json();
       if (!res.ok) { setError(data.error || 'Registration failed.'); return; }
       login(data.user, data.token);
-      navigate('/');
+      navigate('/welcome');
     } catch {
       setError(t('errors.couldNotConnect'));
     } finally {

@@ -17,6 +17,8 @@ import SettingsPage from './pages/SettingsPage';
 import ProfilePage from './pages/ProfilePage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
+import WelcomePage from './pages/WelcomePage';
+import FeedPage from './pages/FeedPage';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from './context/AuthContext';
 
@@ -265,6 +267,8 @@ function App() {
           <Route path="/admin"            element={<AdminPage />} />
           <Route path="/settings"         element={<SettingsPage />} />
           <Route path="/profile/:username" element={<ProfilePage />} />
+          <Route path="/welcome"           element={<WelcomePage />} />
+          <Route path="/feed"              element={<FeedPage />} />
           <Route path="/forgot-password"  element={<ForgotPasswordPage />} />
           <Route path="/reset-password"   element={<ResetPasswordPage />} />
         </Routes>

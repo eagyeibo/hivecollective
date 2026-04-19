@@ -408,6 +408,77 @@ function DeleteSection({ username, onDeleted }) {
   );
 }
 
+const NOTIF_DEFAULTS = { new_solution: true, comment: true, mention: true };
+
+function Toggle({ checked, onChange }) {
+  return (
+    <div
+      onClick={onChange}
+      style={{
+        width: 36, height: 20, borderRadius: 10, cursor: 'pointer', flexShrink: 0,
+        background: checked ? 'rgba(139,92,246,0.7)' : 'var(--field-bg)',
+        border: `0.5px solid ${checked ? 'rgba(139,92,246,0.5)' : 'rgba(255,255,255,0.1)'}`,
+        position: 'relative', transition: 'background 0.2s, border-color 0.2s',
+      }}
+    >
+      <div style={{
+        width: 14, height: 14, borderRadius: '50%', background: '#fff',
+        position: 'absolute', top: 3,
+        left: checked ? 19 : 3,
+        transition: 'left 0.2s',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+      }} />
+    </div>
+  );
+}
+
+function NotificationSection() {
+  const [prefs, setPrefs] = useState(() => {
+    try { return { ...NOTIF_DEFAULTS, ...JSON.parse(localStorage.getItem('hc_notif_prefs') || '{}') }; }
+    catch { return NOTIF_DEFAULTS; }
+  });
+  const [saved, setSaved] = useState(false);
+
+  function toggle(key) {
+    const next = { ...prefs, [key]: !prefs[key] };
+    setPrefs(next);
+    localStorage.setItem('hc_notif_prefs', JSON.stringify(next));
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  }
+
+  const rows = [
+    { key: 'new_solution', label: 'New solution posted', desc: 'When someone proposes a solution on a problem in your groups.' },
+    { key: 'comment',      label: 'Comment on your solution', desc: 'When someone comments on a solution you posted.' },
+    { key: 'mention',      label: '@Mentions', desc: 'When someone @mentions you in a solution or comment.' },
+  ];
+
+  return (
+    <Section title="Notifications" description="Choose which in-app notifications you receive.">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        {rows.map(row => (
+          <div key={row.key} style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16,
+            padding: '12px 14px', borderRadius: 8,
+            background: 'var(--field-bg)',
+            border: '0.5px solid var(--subtle-bg-2)',
+            marginBottom: 8,
+          }}>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-h)', marginBottom: 2 }}>{row.label}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>{row.desc}</div>
+            </div>
+            <Toggle checked={prefs[row.key]} onChange={() => toggle(row.key)} />
+          </div>
+        ))}
+      </div>
+      {saved && (
+        <div style={{ fontSize: 12, color: 'var(--emerald)', marginTop: 8 }}>Preferences saved.</div>
+      )}
+    </Section>
+  );
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
@@ -441,22 +512,7 @@ export default function SettingsPage() {
       <AccountSection user={user} onUserUpdate={handleUserUpdate} />
       <PasswordSection />
 
-      <Section title={t('settings.notificationsTitle')} description={t('settings.notificationsDesc')}>
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 10,
-          padding: '10px 14px',
-          background: 'var(--field-bg)',
-          border: '0.5px solid var(--subtle-bg-2)',
-          borderRadius: 8,
-          fontSize: 13, color: '#444',
-        }}>
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-            <circle cx="7" cy="7" r="6" stroke="#333" strokeWidth="0.8"/>
-            <path d="M7 4v3.5l2 2" stroke="#333" strokeWidth="0.8" strokeLinecap="round"/>
-          </svg>
-          {t('settings.notificationsComing')}
-        </div>
-      </Section>
+      <NotificationSection />
 
       <DeleteSection username={user.username} onDeleted={handleDeleted} />
     </div>
