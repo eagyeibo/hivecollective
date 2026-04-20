@@ -177,6 +177,82 @@ router.post('/', authMiddleware, async (req, res) => {
 });
 
 // ─────────────────────────────────────────
+// Problem updates (progress posts by owner)
+// ─────────────────────────────────────────
+pool.query(`
+  CREATE TABLE IF NOT EXISTS problem_updates (
+    id         SERIAL PRIMARY KEY,
+    problem_id INTEGER NOT NULL REFERENCES problems(id) ON DELETE CASCADE,
+    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    content    TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+  )
+`).catch(err => console.error('Failed to create problem_updates table:', err));
+
+router.get('/:id/updates', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await pool.query(
+      `SELECT pu.id, pu.content, pu.created_at, u.username
+       FROM problem_updates pu
+       JOIN users u ON u.id = pu.user_id
+       WHERE pu.problem_id = $1
+       ORDER BY pu.created_at DESC`,
+      [id]
+    );
+    return res.json({ updates: result.rows });
+  } catch (err) {
+    console.error('Get updates error:', err);
+    return res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+router.post('/:id/updates', authMiddleware, async (req, res) => {
+  const { id } = req.params;
+  const user_id = req.user.id;
+  const { content } = req.body;
+
+  if (!content || content.trim().length === 0) {
+    return res.status(400).json({ error: 'Content is required.' });
+  }
+  if (content.length > 2000) {
+    return res.status(400).json({ error: 'Update must be under 2000 characters.' });
+  }
+
+  try {
+    const problem = await pool.query('SELECT user_id FROM problems WHERE id = $1', [id]);
+    if (problem.rows.length === 0) return res.status(404).json({ error: 'Problem not found.' });
+    if (problem.rows[0].user_id !== user_id) return res.status(403).json({ error: 'Only the problem owner can post updates.' });
+
+    const result = await pool.query(
+      `INSERT INTO problem_updates (problem_id, user_id, content)
+       VALUES ($1, $2, $3) RETURNING id, content, created_at`,
+      [id, user_id, content.trim()]
+    );
+    return res.status(201).json({ update: result.rows[0] });
+  } catch (err) {
+    console.error('Post update error:', err);
+    return res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+router.delete('/:id/updates/:updateId', authMiddleware, async (req, res) => {
+  const { id, updateId } = req.params;
+  const user_id = req.user.id;
+  try {
+    const problem = await pool.query('SELECT user_id FROM problems WHERE id = $1', [id]);
+    if (problem.rows.length === 0) return res.status(404).json({ error: 'Problem not found.' });
+    if (problem.rows[0].user_id !== user_id) return res.status(403).json({ error: 'Permission denied.' });
+
+    await pool.query('DELETE FROM problem_updates WHERE id = $1 AND problem_id = $2', [updateId, id]);
+    return res.json({ message: 'Update deleted.' });
+  } catch (err) {
+    console.error('Delete update error:', err);
+    return res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+// ─────────────────────────────────────────
 // GET /api/problems/:id/related
 // Public — up to 4 problems sharing tags or location with this one
 // ─────────────────────────────────────────

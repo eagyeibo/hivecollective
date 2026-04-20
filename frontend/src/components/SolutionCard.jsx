@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import API from '../config';
 import CommentSection from './CommentSection';
+import PollSection from './PollSection';
 import ReportModal from './ReportModal';
 import { getBadge } from '../utils/badges';
 
@@ -123,6 +124,7 @@ export default function SolutionCard({ solution, problemId, isTop }) {
             </button>
           )}
         </div>
+        <PollSection solutionId={solution.id} isAuthor={isOwnSolution} />
         <CommentSection solutionId={solution.id} />
         {reporting && (
           <ReportModal type="solution" referenceId={solution.id} onClose={() => setReporting(false)} />

@@ -7,6 +7,108 @@ import ShareBar from '../components/ShareBar';
 import ReportModal from '../components/ReportModal';
 import API from '../config';
 
+function timeAgo(dateStr) {
+  const diff = (Date.now() - new Date(dateStr)) / 1000;
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
+  return new Date(dateStr).toLocaleDateString();
+}
+
+function UpdatesSection({ problemId, isOwner, token }) {
+  const [updates, setUpdates] = useState([]);
+  const [input, setInput] = useState('');
+  const [posting, setPosting] = useState(false);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    fetch(`${API}/problems/${problemId}/updates`)
+      .then(r => r.json())
+      .then(d => setUpdates(d.updates || []))
+      .catch(() => {});
+  }, [problemId]);
+
+  async function postUpdate(e) {
+    e.preventDefault();
+    if (!input.trim()) return;
+    setPosting(true);
+    try {
+      const res = await fetch(`${API}/problems/${problemId}/updates`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ content: input.trim() }),
+      });
+      const data = await res.json();
+      if (res.ok) { setUpdates(u => [data.update, ...u]); setInput(''); }
+    } catch {}
+    finally { setPosting(false); }
+  }
+
+  async function deleteUpdate(updateId) {
+    try {
+      await fetch(`${API}/problems/${problemId}/updates/${updateId}`, {
+        method: 'DELETE', headers: { Authorization: `Bearer ${token}` },
+      });
+      setUpdates(u => u.filter(x => x.id !== updateId));
+    } catch {}
+  }
+
+  if (updates.length === 0 && !isOwner) return null;
+
+  return (
+    <div style={{ marginBottom: 28 }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{ background: 'none', border: 'none', cursor: 'pointer', boxShadow: 'none', padding: 0, display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}
+      >
+        <h2 style={{ fontSize: 16, fontWeight: 700, margin: 0, fontFamily: 'var(--heading)', color: 'var(--text-h)' }}>
+          Updates <span style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 400 }}>({updates.length})</span>
+        </h2>
+        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{open ? '▲' : '▼'}</span>
+      </button>
+
+      {open && (
+        <div>
+          {isOwner && (
+            <form onSubmit={postUpdate} style={{ marginBottom: 16 }}>
+              <textarea
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                placeholder="Post a progress update…"
+                maxLength={2000}
+                rows={3}
+                style={{ width: '100%', fontSize: 13, padding: '10px 14px', resize: 'vertical', borderRadius: 'var(--radius-sm)', background: 'var(--card-bg-subtle)', border: '1px solid var(--border)', color: 'var(--text)', marginBottom: 8 }}
+              />
+              <button type="submit" disabled={posting || !input.trim()} style={{ fontSize: 13, padding: '8px 18px' }}>
+                {posting ? 'Posting…' : 'Post update'}
+              </button>
+            </form>
+          )}
+
+          {updates.length === 0 && (
+            <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>No updates yet.</p>
+          )}
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {updates.map(u => (
+              <div key={u.id} style={{ background: 'var(--card-bg-subtle)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '14px 16px', borderLeft: '3px solid var(--accent)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                  <p style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.65, margin: 0 }}>{u.content}</p>
+                  {isOwner && (
+                    <button onClick={() => deleteUpdate(u.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--text-muted)', flexShrink: 0, padding: '2px 4px', boxShadow: 'none' }} title="Delete update">✕</button>
+                  )}
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>{timeAgo(u.created_at)}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 const SCOPE_STYLE = {
   national: { background: 'var(--accent-bg)', color: 'var(--accent)', border: '1px solid var(--accent-border)' },
   local:    { background: 'var(--emerald-bg)', color: 'var(--emerald)', border: '1px solid var(--emerald-border)' },
@@ -232,6 +334,9 @@ export default function ProblemDetailPage() {
       </div>
 
       <ShareBar problemId={id} problemTitle={problem.title} />
+
+      {/* Updates section */}
+      <UpdatesSection problemId={id} isOwner={isLoggedIn && user && user.id === problem.user_id} token={token} />
 
       {/* Groups section */}
       <div style={{ marginBottom: 28 }}>
