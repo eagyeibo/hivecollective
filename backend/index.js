@@ -20,6 +20,8 @@ const feedRoutes         = require('./routes/feed');
 const oauthRoutes        = require('./routes/oauth');
 const pushRoutes         = require('./routes/push');
 const pollRoutes         = require('./routes/polls');
+const coauthorRoutes     = require('./routes/coauthors');
+const messageRoutes      = require('./routes/messages');
 
 const app = express();
 
@@ -62,6 +64,8 @@ app.use('/api/feed',          apiLimiter, feedRoutes);
 app.use('/api/auth',          authLimiter, oauthRoutes);
 app.use('/api/push',          apiLimiter,  pushRoutes);
 app.use('/api/solutions',     apiLimiter,  pollRoutes);
+app.use('/api/solutions',     apiLimiter,  coauthorRoutes);
+app.use('/api/messages',      apiLimiter,  messageRoutes);
 
 app.get('/api/test', (req, res) => {
   res.json({ message: 'HiveCollective API is running.' });

@@ -2,7 +2,56 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useTranslation } from 'react-i18next';
+import { useState, useEffect } from 'react';
 import NotificationBell from './NotificationBell';
+import API from '../config';
+
+function MessagesBadge() {
+  const { token, isLoggedIn } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [unread, setUnread] = useState(0);
+
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    const fetch_ = () =>
+      fetch(`${API}/messages/unread-count`, { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.json()).then(d => setUnread(d.count || 0)).catch(() => {});
+    fetch_();
+    const id = setInterval(fetch_, 30000);
+    return () => clearInterval(id);
+  }, [isLoggedIn, token]);
+
+  useEffect(() => {
+    if (location.pathname.startsWith('/messages')) setUnread(0);
+  }, [location.pathname]);
+
+  const active = location.pathname.startsWith('/messages');
+  return (
+    <button
+      onClick={() => navigate('/messages')}
+      title="Messages"
+      style={{
+        background: active ? 'var(--accent-bg)' : 'transparent',
+        border: `1px solid ${active ? 'var(--accent-border)' : 'transparent'}`,
+        color: active ? 'var(--accent)' : 'var(--text)',
+        borderRadius: 'var(--radius-md)', padding: '6px 10px',
+        fontSize: 14, cursor: 'pointer', boxShadow: 'none',
+        lineHeight: 1, position: 'relative',
+      }}
+    >
+      ✉
+      {unread > 0 && (
+        <span style={{
+          position: 'absolute', top: 2, right: 2,
+          background: 'var(--accent)', color: '#fff',
+          borderRadius: '50%', fontSize: 9, fontWeight: 700,
+          width: 14, height: 14, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>{unread > 9 ? '9+' : unread}</span>
+      )}
+    </button>
+  );
+}
 
 export default function Navbar() {
   const { isLoggedIn, user, logout } = useAuth();
@@ -127,6 +176,7 @@ export default function Navbar() {
         {isLoggedIn ? (
           <>
             <NotificationBell />
+            <MessagesBadge />
             <button
               onClick={() => navigate('/bookmarks')}
               title="Saved problems"
