@@ -2,6 +2,7 @@ const express = require('express');
 const pool = require('../db');
 const authMiddleware = require('../middleware/auth');
 const { sendNotificationEmail } = require('../utils/email');
+const { sendPushToUser } = require('../utils/push');
 
 const router = express.Router();
 
@@ -160,7 +161,36 @@ router.post('/:id/solutions/:solutionId/vote', authMiddleware, async (req, res) 
     );
     await pool.query('UPDATE solutions SET score = score + $1 WHERE id = $2', [value, solution_id]);
     const updated = await pool.query('SELECT score FROM solutions WHERE id = $1', [solution_id]);
-    return res.status(200).json({ message: 'Vote recorded.', score: updated.rows[0].score, userVote: value });
+    const newScore = updated.rows[0].score;
+
+    // Notify author at score milestones (5, 10, 25, 50, 100)
+    const MILESTONES = [5, 10, 25, 50, 100];
+    const prevScore = newScore - value;
+    const crossed = MILESTONES.find(m => prevScore < m && newScore >= m);
+    if (crossed && value === 1) {
+      const sol = solution.rows[0];
+      const problemRow = await pool.query(
+        'SELECT p.id, p.title FROM problems p JOIN solutions s ON s.problem_id = p.id WHERE s.id = $1',
+        [solution_id]
+      );
+      if (problemRow.rows.length > 0) {
+        const { id: problemId, title } = problemRow.rows[0];
+        const msg = `Your solution on "${title}" reached ${crossed} upvotes!`;
+        await pool.query(
+          `INSERT INTO notifications (user_id, type, reference_id, message)
+           VALUES ($1, 'upvote_milestone', $2, $3)`,
+          [sol.user_id, problemId, msg]
+        );
+        const appUrl = process.env.APP_URL || 'http://localhost:5173';
+        sendPushToUser(sol.user_id, { title: `${crossed} upvotes!`, body: msg, url: `${appUrl}/problems/${problemId}` }).catch(() => {});
+        sendNotificationEmail(sol.user_id, `Your solution hit ${crossed} upvotes 🎉`, `
+          <p style="font-size:14px;color:#aaa;line-height:1.6;margin:0 0 16px;">${msg}</p>
+          <a href="${appUrl}/problems/${problemId}" style="display:inline-block;background:#7c3aed;color:#fff;text-decoration:none;padding:10px 22px;border-radius:8px;font-size:13px;">View solution</a>
+        `).catch(() => {});
+      }
+    }
+
+    return res.status(200).json({ message: 'Vote recorded.', score: newScore, userVote: value });
 
   } catch (err) {
     console.error('Vote error:', err);

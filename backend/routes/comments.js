@@ -2,6 +2,7 @@ const express = require('express');
 const pool = require('../db');
 const authMiddleware = require('../middleware/auth');
 const { sendNotificationEmail } = require('../utils/email');
+const { sendPushToUser } = require('../utils/push');
 
 const router = express.Router();
 
@@ -83,6 +84,7 @@ router.post('/:solutionId/comments', authMiddleware, async (req, res) => {
         <p style="font-size:14px;color:#aaa;line-height:1.6;margin:0 0 16px;">${msg}</p>
         <a href="${appUrl}/problems/${sol.problem_id}" style="display:inline-block;background:#7c3aed;color:#fff;text-decoration:none;padding:10px 22px;border-radius:8px;font-size:13px;">View problem</a>
       `).catch(() => {});
+      sendPushToUser(sol.user_id, { title: 'New comment', body: msg, url: `${appUrl}/problems/${sol.problem_id}` }).catch(() => {});
     }
 
     const user = await pool.query('SELECT username FROM users WHERE id = $1', [user_id]);

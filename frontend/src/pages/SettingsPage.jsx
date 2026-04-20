@@ -479,6 +479,91 @@ function NotificationSection() {
   );
 }
 
+function PushSection() {
+  const { token } = useAuth();
+  const [status, setStatus] = useState('idle'); // idle | loading | granted | denied | unsupported
+  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+
+  useEffect(() => {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      setStatus('unsupported'); return;
+    }
+    if (Notification.permission === 'granted') setStatus('granted');
+    else if (Notification.permission === 'denied') setStatus('denied');
+  }, []);
+
+  async function enable() {
+    setStatus('loading');
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const keyRes = await fetch(`${API_BASE}/push/vapid-public-key`);
+      const { publicKey } = await keyRes.json();
+
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: publicKey,
+      });
+
+      await fetch(`${API_BASE}/push/subscribe`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(sub),
+      });
+      setStatus('granted');
+    } catch {
+      setStatus(Notification.permission === 'denied' ? 'denied' : 'idle');
+    }
+  }
+
+  async function disable() {
+    setStatus('loading');
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      if (sub) {
+        await fetch(`${API_BASE}/push/unsubscribe`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ endpoint: sub.endpoint }),
+        });
+        await sub.unsubscribe();
+      }
+      setStatus('idle');
+    } catch {
+      setStatus('idle');
+    }
+  }
+
+  if (status === 'unsupported') return null;
+
+  return (
+    <Section title="Push notifications" description="Get notified on your device even when the tab is closed.">
+      {status === 'granted' ? (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <div style={{ fontSize: 13, color: 'var(--emerald)', fontWeight: 500, marginBottom: 2 }}>Notifications enabled</div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>You'll receive alerts for comments, mentions, and upvote milestones.</div>
+          </div>
+          <button onClick={disable} disabled={status === 'loading'} style={{ fontSize: 12, padding: '7px 16px', background: 'transparent', border: '0.5px solid var(--border)', color: 'var(--text-muted)', borderRadius: 8, cursor: 'pointer', boxShadow: 'none' }}>
+            Disable
+          </button>
+        </div>
+      ) : status === 'denied' ? (
+        <div style={{ fontSize: 13, color: '#f87171' }}>
+          Notifications are blocked. Enable them in your browser settings, then reload.
+        </div>
+      ) : (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Push notifications are off.</div>
+          <button onClick={enable} disabled={status === 'loading'} style={{ fontSize: 12, padding: '7px 16px' }}>
+            {status === 'loading' ? 'Enabling…' : 'Enable'}
+          </button>
+        </div>
+      )}
+    </Section>
+  );
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
@@ -513,6 +598,7 @@ export default function SettingsPage() {
       <PasswordSection />
 
       <NotificationSection />
+      <PushSection />
 
       <DeleteSection username={user.username} onDeleted={handleDeleted} />
     </div>
