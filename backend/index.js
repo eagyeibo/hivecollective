@@ -17,6 +17,7 @@ const bookmarkRoutes     = require('./routes/bookmarks');
 const reportRoutes       = require('./routes/reports');
 const adminRoutes        = require('./routes/admin');
 const feedRoutes         = require('./routes/feed');
+const oauthRoutes        = require('./routes/oauth');
 
 const app = express();
 
@@ -56,6 +57,7 @@ app.use('/api/bookmarks',     apiLimiter, bookmarkRoutes);
 app.use('/api/reports',       apiLimiter, reportRoutes);
 app.use('/api/admin',         apiLimiter, adminRoutes);
 app.use('/api/feed',          apiLimiter, feedRoutes);
+app.use('/api/auth',          authLimiter, oauthRoutes);
 
 app.get('/api/test', (req, res) => {
   res.json({ message: 'HiveCollective API is running.' });

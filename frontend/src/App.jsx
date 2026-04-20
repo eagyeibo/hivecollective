@@ -18,6 +18,7 @@ import ProfilePage from './pages/ProfilePage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import VerifyEmailPage from './pages/VerifyEmailPage';
+import AuthCallbackPage from './pages/AuthCallbackPage';
 import WelcomePage from './pages/WelcomePage';
 import FeedPage from './pages/FeedPage';
 import { useTranslation } from 'react-i18next';
@@ -327,6 +328,7 @@ function App() {
           <Route path="/forgot-password"  element={<ForgotPasswordPage />} />
           <Route path="/reset-password"   element={<ResetPasswordPage />} />
           <Route path="/verify-email"     element={<VerifyEmailPage />} />
+          <Route path="/auth/callback"    element={<AuthCallbackPage />} />
         </Routes>
       </Layout>
     </BrowserRouter>
