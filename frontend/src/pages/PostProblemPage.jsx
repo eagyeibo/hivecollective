@@ -8,7 +8,7 @@ const ALL_TAGS = ['health','education','infrastructure','agriculture','environme
 export default function PostProblemPage() {
   const { token, isLoggedIn } = useAuth();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ title: '', description: '', scope: 'national', location_tag: '', tags: [] });
+  const [form, setForm] = useState({ title: '', description: '', scope: 'national', location_tag: '', tags: [], affected_count: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -100,6 +100,18 @@ export default function PostProblemPage() {
             <label>Location</label>
             <input name="location_tag" value={form.location_tag} onChange={handleChange} placeholder="e.g. Ghana or Accra" required />
           </div>
+        </div>
+
+        <div>
+          <label>
+            People affected <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optional estimate)</span>
+          </label>
+          <input
+            type="number" name="affected_count" value={form.affected_count}
+            onChange={handleChange} placeholder="e.g. 50000" min="1"
+            style={{ maxWidth: 200 }}
+          />
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>Approximate number of people this problem affects.</div>
         </div>
 
         <div>

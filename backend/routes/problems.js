@@ -1,10 +1,14 @@
 const express = require('express');
 const pool = require('../db');
 const authMiddleware = require('../middleware/auth');
+const { logEvent } = require('../utils/events');
 
 const router = express.Router();
 
 const VALID_TAGS = ['health','education','infrastructure','agriculture','environment','economy','security','governance','technology','other'];
+
+pool.query('ALTER TABLE problems ADD COLUMN IF NOT EXISTS affected_count INTEGER')
+  .catch(err => console.error('Failed to add affected_count column:', err));
 
 // ─────────────────────────────────────────
 // GET /api/problems
@@ -96,7 +100,7 @@ router.get('/:id', async (req, res) => {
     const problemResult = await pool.query(
       `SELECT
         p.id, p.title, p.description, p.scope, p.location_tag,
-        p.status, p.tags, p.created_at,
+        p.status, p.tags, p.created_at, p.affected_count,
         u.username AS posted_by, u.id AS user_id
        FROM problems p
        JOIN users u ON u.id = p.user_id
@@ -138,7 +142,7 @@ router.get('/:id', async (req, res) => {
 // Protected — logged-in users post a new problem
 // ─────────────────────────────────────────
 router.post('/', authMiddleware, async (req, res) => {
-  const { title, description, scope, location_tag, tags } = req.body;
+  const { title, description, scope, location_tag, tags, affected_count } = req.body;
   const user_id = req.user.id;
 
   if (!title || !description || !scope || !location_tag) {
@@ -158,16 +162,22 @@ router.post('/', authMiddleware, async (req, res) => {
     : [];
 
   try {
+    const cleanAffected = affected_count && Number.isInteger(Number(affected_count)) && Number(affected_count) > 0
+      ? Number(affected_count) : null;
+
     const result = await pool.query(
-      `INSERT INTO problems (user_id, title, description, scope, location_tag, tags)
-       VALUES ($1, $2, $3, $4, $5, $6)
-       RETURNING id, title, description, scope, location_tag, status, tags, created_at`,
-      [user_id, title, description, scope, location_tag, cleanTags]
+      `INSERT INTO problems (user_id, title, description, scope, location_tag, tags, affected_count)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING id, title, description, scope, location_tag, status, tags, affected_count, created_at`,
+      [user_id, title, description, scope, location_tag, cleanTags, cleanAffected]
     );
+
+    const problem = result.rows[0];
+    logEvent(problem.id, 'problem_created', `Problem posted by ${req.user.username || 'a user'}`);
 
     return res.status(201).json({
       message: 'Problem posted successfully.',
-      problem: result.rows[0],
+      problem,
     });
 
   } catch (err) {
@@ -229,6 +239,7 @@ router.post('/:id/updates', authMiddleware, async (req, res) => {
        VALUES ($1, $2, $3) RETURNING id, content, created_at`,
       [id, user_id, content.trim()]
     );
+    logEvent(id, 'update_posted', `Owner posted a progress update`);
     return res.status(201).json({ update: result.rows[0] });
   } catch (err) {
     console.error('Post update error:', err);
@@ -248,6 +259,25 @@ router.delete('/:id/updates/:updateId', authMiddleware, async (req, res) => {
     return res.json({ message: 'Update deleted.' });
   } catch (err) {
     console.error('Delete update error:', err);
+    return res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+// ─────────────────────────────────────────
+// GET /api/problems/:id/timeline
+// ─────────────────────────────────────────
+router.get('/:id/timeline', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await pool.query(
+      `SELECT id, event_type, description, created_at
+       FROM problem_events WHERE problem_id = $1
+       ORDER BY created_at ASC`,
+      [id]
+    );
+    return res.json({ events: result.rows });
+  } catch (err) {
+    console.error('Timeline error:', err);
     return res.status(500).json({ error: 'Server error.' });
   }
 });
@@ -336,6 +366,8 @@ router.patch('/:id/status', authMiddleware, async (req, res) => {
       return res.status(403).json({ error: 'Problem not found or you do not have permission.' });
     }
 
+    const labels = { open: 'Open', in_progress: 'In Progress', resolved: 'Resolved' };
+    logEvent(id, 'status_changed', `Status changed to ${labels[status] || status}`);
     return res.status(200).json({ message: 'Status updated.', status: result.rows[0].status });
 
   } catch (err) {

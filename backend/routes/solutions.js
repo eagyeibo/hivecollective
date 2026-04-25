@@ -3,6 +3,7 @@ const pool = require('../db');
 const authMiddleware = require('../middleware/auth');
 const { sendNotificationEmail } = require('../utils/email');
 const { sendPushToUser } = require('../utils/push');
+const { logEvent } = require('../utils/events');
 
 const router = express.Router();
 
@@ -43,6 +44,7 @@ router.post('/:id/solutions', authMiddleware, async (req, res) => {
     );
 
     const solution = result.rows[0];
+    logEvent(problem_id, 'solution_posted', `A new solution was proposed by ${req.user.username || 'a user'}`);
 
     // Notify all group members for groups linked to this problem
     const groups = await pool.query(

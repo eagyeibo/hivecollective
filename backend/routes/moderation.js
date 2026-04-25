@@ -2,6 +2,7 @@ const express = require('express');
 const pool = require('../db');
 const authMiddleware = require('../middleware/auth');
 const { isModerator } = require('./groups');
+const { logEvent } = require('../utils/events');
 
 const router = express.Router();
 
@@ -98,6 +99,7 @@ router.post('/groups/:groupId/solutions/:solutionId/implement', authMiddleware, 
       `A solution in your group has been marked as implemented.`
     );
 
+    logEvent(solution.problem_id, 'solution_implemented', `A solution was marked as implemented`);
     return res.status(200).json({ message: 'Solution marked as implemented and contributors credited.' });
 
   } catch (err) {

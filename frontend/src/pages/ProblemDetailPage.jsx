@@ -109,6 +109,70 @@ function UpdatesSection({ problemId, isOwner, token }) {
   );
 }
 
+function TimelineSection({ problemId }) {
+  const [events, setEvents] = useState([]);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    fetch(`${API}/problems/${problemId}/timeline`)
+      .then(r => r.json())
+      .then(d => setEvents(d.events || []))
+      .catch(() => {});
+  }, [problemId]);
+
+  if (events.length === 0) return null;
+
+  const EVENT_ICON = {
+    problem_created:      '⬡',
+    solution_posted:      '💡',
+    solution_implemented: '✅',
+    status_changed:       '🔄',
+    update_posted:        '📝',
+  };
+
+  return (
+    <div style={{ marginBottom: 28 }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{ background: 'none', border: 'none', cursor: 'pointer', boxShadow: 'none', padding: 0, display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}
+      >
+        <h2 style={{ fontSize: 16, fontWeight: 700, margin: 0, fontFamily: 'var(--heading)', color: 'var(--text-h)' }}>
+          Activity <span style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 400 }}>({events.length})</span>
+        </h2>
+        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{open ? '▲' : '▼'}</span>
+      </button>
+
+      {open && (
+        <div style={{ position: 'relative', paddingLeft: 28 }}>
+          {/* Vertical track */}
+          <div style={{ position: 'absolute', left: 7, top: 8, bottom: 8, width: 2, background: 'var(--border)', borderRadius: 2 }} />
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+            {events.map(ev => (
+              <div key={ev.id} style={{ position: 'relative' }}>
+                {/* Dot */}
+                <div style={{
+                  position: 'absolute', left: -22, top: 3,
+                  width: 12, height: 12, borderRadius: '50%',
+                  background: ev.event_type === 'solution_implemented' ? 'var(--emerald)' :
+                              ev.event_type === 'problem_created'      ? 'var(--accent)'  : 'var(--honey)',
+                  border: '2px solid var(--bg)',
+                  flexShrink: 0,
+                }} />
+                <div style={{ fontSize: 13, color: 'var(--text-h)', lineHeight: 1.5 }}>
+                  <span style={{ marginRight: 6 }}>{EVENT_ICON[ev.event_type] || '•'}</span>
+                  {ev.description}
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3 }}>{timeAgo(ev.created_at)}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 const SCOPE_STYLE = {
   national: { background: 'var(--accent-bg)', color: 'var(--accent)', border: '1px solid var(--accent-border)' },
   local:    { background: 'var(--emerald-bg)', color: 'var(--emerald)', border: '1px solid var(--emerald-border)' },
@@ -301,6 +365,11 @@ export default function ProblemDetailPage() {
               #{tag}
             </span>
           ))}
+          {problem.affected_count && (
+            <span style={{ fontSize: 11, padding: '3px 9px', borderRadius: 20, background: 'rgba(245,158,11,0.08)', color: 'var(--honey)', border: '1px solid var(--honey-border)', fontFamily: 'var(--mono)', fontWeight: 600 }}>
+              👥 {Number(problem.affected_count).toLocaleString()} affected
+            </span>
+          )}
         </div>
 
         <h1 style={{ fontSize: 20, fontWeight: 700, margin: '0 0 12px', lineHeight: 1.4, fontFamily: 'var(--heading)', color: 'var(--text-h)' }}>
@@ -337,6 +406,9 @@ export default function ProblemDetailPage() {
 
       {/* Updates section */}
       <UpdatesSection problemId={id} isOwner={isLoggedIn && user && user.id === problem.user_id} token={token} />
+
+      {/* Activity timeline */}
+      <TimelineSection problemId={id} />
 
       {/* Groups section */}
       <div style={{ marginBottom: 28 }}>
