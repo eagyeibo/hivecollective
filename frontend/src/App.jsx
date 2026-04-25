@@ -61,8 +61,8 @@ function HexCanvas() {
       hexes.forEach(h => {
         const pulse = (Math.sin(t + h.phase) + 1) / 2;
         hexPath(h.x, h.y, h.R - 1);
-        ctx.strokeStyle = `rgba(168,85,247,${0.025 + pulse * 0.04})`;
-        ctx.lineWidth = 0.8; ctx.stroke();
+        ctx.strokeStyle = `rgba(168,85,247,${0.08 + pulse * 0.14})`;
+        ctx.lineWidth = 1; ctx.stroke();
       });
       animId = requestAnimationFrame(draw);
     }
@@ -71,7 +71,7 @@ function HexCanvas() {
   }, []);
   return (
     <canvas ref={canvasRef} aria-hidden="true"
-      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }} />
+      style={{ position: 'fixed', inset: 0, width: '100vw', height: '100vh', pointerEvents: 'none', zIndex: -1 }} />
   );
 }
 
@@ -171,8 +171,6 @@ function HomePage() {
       minHeight: 'calc(100svh - 56px)',
       padding: '60px 20px 94px', textAlign: 'center',
     }}>
-      <HexCanvas />
-
       {/* Glow orbs */}
       <div style={{ position: 'absolute', top: '-5%', left: '-5%', width: 500, height: 500, background: 'radial-gradient(circle, rgba(124,34,240,0.16) 0%, transparent 70%)', borderRadius: '50%', pointerEvents: 'none', animation: 'orbPulse 7s ease-in-out infinite' }} />
       <div style={{ position: 'absolute', bottom: '5%', right: '-3%', width: 380, height: 380, background: 'radial-gradient(circle, rgba(245,158,11,0.12) 0%, transparent 70%)', borderRadius: '50%', pointerEvents: 'none', animation: 'orbPulse 7s ease-in-out 2s infinite' }} />
@@ -297,6 +295,7 @@ function UnverifiedBanner() {
 function Layout({ children }) {
   return (
     <>
+      <HexCanvas />
       <Navbar />
       <UnverifiedBanner />
       <main>{children}</main>
