@@ -43,7 +43,7 @@ function HexCanvas() {
           hexes.push({ x: c * cW + (r % 2 === 1 ? cW / 2 : 0), y: r * rH, R, phase: Math.random() * Math.PI * 2 });
     }
     function resize() {
-      W = canvas.offsetWidth; H = canvas.offsetHeight;
+      W = window.innerWidth; H = window.innerHeight;
       canvas.width = W; canvas.height = H; buildHexes();
     }
     function hexPath(x, y, R) {
