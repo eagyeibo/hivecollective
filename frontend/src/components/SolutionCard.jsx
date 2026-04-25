@@ -26,8 +26,21 @@ export default function SolutionCard({ solution, problemId, isTop }) {
   const [userVote, setUserVote] = useState(solution.userVote || 0);
   const [voting, setVoting] = useState(false);
   const [reporting, setReporting] = useState(false);
+  const [hidden, setHidden] = useState(solution.is_hidden || false);
 
   const isOwnSolution = user && user.id === solution.user_id;
+  const isAdmin = user?.is_admin || false;
+
+  async function toggleHide() {
+    try {
+      const res = await fetch(`${API}/admin/solutions/${solution.id}/hide`, {
+        method: 'PATCH',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (res.ok) setHidden(data.solution.is_hidden);
+    } catch {}
+  }
 
   async function vote(value) {
     if (!isLoggedIn) { alert('Please sign in to vote.'); return; }
@@ -47,14 +60,15 @@ export default function SolutionCard({ solution, problemId, isTop }) {
 
   return (
     <div style={{
-      background: isTop ? 'var(--emerald-bg)' : 'var(--card-bg-subtle)',
-      border: `1px solid ${isTop ? 'rgba(52,211,153,0.3)' : 'var(--border)'}`,
+      background: hidden ? 'rgba(185,28,28,0.05)' : isTop ? 'var(--emerald-bg)' : 'var(--card-bg-subtle)',
+      border: `1px solid ${hidden ? 'rgba(248,113,113,0.25)' : isTop ? 'rgba(52,211,153,0.3)' : 'var(--border)'}`,
       borderRadius: 'var(--radius-lg)',
       padding: '14px 18px',
       marginBottom: 10,
       display: 'flex',
       gap: 14,
       backdropFilter: 'blur(8px)',
+      opacity: hidden ? 0.75 : 1,
     }}>
 
       {/* Vote column */}
@@ -100,7 +114,12 @@ export default function SolutionCard({ solution, problemId, isTop }) {
 
       {/* Content column */}
       <div style={{ flex: 1 }}>
-        {isTop && (
+        {hidden && (
+          <p style={{ fontSize: 11, fontWeight: 700, color: '#f87171', margin: '0 0 6px', letterSpacing: '0.5px', textTransform: 'uppercase', fontFamily: 'var(--mono)' }}>
+            🚫 Hidden from public
+          </p>
+        )}
+        {!hidden && isTop && (
           <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--emerald)', margin: '0 0 6px', letterSpacing: '0.5px', textTransform: 'uppercase', fontFamily: 'var(--mono)' }}>
             ✦ Top solution
           </p>
@@ -122,6 +141,20 @@ export default function SolutionCard({ solution, problemId, isTop }) {
               title="Report this solution"
             >
               ⚑ Report
+            </button>
+          )}
+          {isAdmin && (
+            <button
+              onClick={toggleHide}
+              title={hidden ? 'Make visible to everyone' : 'Hide from public'}
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer', padding: 0, boxShadow: 'none',
+                fontSize: 11, fontWeight: 600,
+                color: hidden ? 'var(--emerald)' : '#f87171',
+                marginLeft: isLoggedIn && !isOwnSolution ? 8 : 'auto',
+              }}
+            >
+              {hidden ? '👁 Unhide' : '🚫 Hide'}
             </button>
           )}
         </div>

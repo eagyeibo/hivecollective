@@ -9,6 +9,8 @@ pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_verified_org BOOLEAN D
   .catch(err => console.error('Failed to add is_verified_org column:', err));
 pool.query(`ALTER TABLE problems ADD COLUMN IF NOT EXISTS is_hidden BOOLEAN DEFAULT FALSE`)
   .catch(err => console.error('Failed to add is_hidden column:', err));
+pool.query(`ALTER TABLE solutions ADD COLUMN IF NOT EXISTS is_hidden BOOLEAN DEFAULT FALSE`)
+  .catch(err => console.error('Failed to add is_hidden to solutions:', err));
 
 // Admin middleware — must be logged in AND is_admin = true
 async function adminOnly(req, res, next) {
@@ -233,6 +235,25 @@ router.patch('/users/:id/promote', async (req, res) => {
     return res.json({ user: result.rows[0] });
   } catch (err) {
     console.error('Promote admin error:', err);
+    return res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+// ─────────────────────────────────────────
+// PATCH /api/admin/solutions/:id/hide
+// Toggle is_hidden on a solution
+// ─────────────────────────────────────────
+router.patch('/solutions/:id/hide', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await pool.query(
+      'UPDATE solutions SET is_hidden = NOT COALESCE(is_hidden, FALSE) WHERE id = $1 RETURNING id, is_hidden',
+      [id]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Solution not found.' });
+    return res.json({ solution: result.rows[0] });
+  } catch (err) {
+    console.error('Toggle solution hide error:', err);
     return res.status(500).json({ error: 'Server error.' });
   }
 });
