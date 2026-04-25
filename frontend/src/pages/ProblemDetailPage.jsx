@@ -241,9 +241,8 @@ export default function ProblemDetailPage() {
   useEffect(() => {
     async function fetchProblem() {
       try {
-        const storedToken2 = localStorage.getItem('token');
         const res = await fetch(`${API}/problems/${id}`, {
-          headers: storedToken2 ? { 'Authorization': `Bearer ${storedToken2}` } : {},
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {},
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error);
@@ -260,10 +259,9 @@ export default function ProblemDetailPage() {
           setRelated(relData.related || []);
         }
 
-        const storedToken = localStorage.getItem('token');
-        if (storedToken) {
+        if (token) {
           const bmRes = await fetch(`${API}/bookmarks/check/${id}`, {
-            headers: { 'Authorization': `Bearer ${storedToken}` },
+            headers: { 'Authorization': `Bearer ${token}` },
           });
           const bmData = await bmRes.json();
           if (bmRes.ok) setBookmarked(bmData.bookmarked);
@@ -275,7 +273,7 @@ export default function ProblemDetailPage() {
       }
     }
     fetchProblem();
-  }, [id]);
+  }, [id, token]);
 
   if (loading) return (
     <div style={{ padding: '60px 24px', maxWidth: 700, margin: '0 auto' }}>
