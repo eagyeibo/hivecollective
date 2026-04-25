@@ -44,7 +44,8 @@ function HexCanvas() {
     }
     function resize() {
       W = window.innerWidth; H = window.innerHeight;
-      canvas.width = W; canvas.height = H; buildHexes();
+      canvas.width = W; canvas.height = H;
+      buildHexes();
     }
     function hexPath(x, y, R) {
       ctx.beginPath();
@@ -71,7 +72,7 @@ function HexCanvas() {
   }, []);
   return (
     <canvas ref={canvasRef} aria-hidden="true"
-      style={{ position: 'fixed', inset: 0, width: '100vw', height: '100vh', pointerEvents: 'none', zIndex: -1 }} />
+      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }} />
   );
 }
 
@@ -295,10 +296,16 @@ function UnverifiedBanner() {
 function Layout({ children }) {
   return (
     <>
-      <HexCanvas />
-      <Navbar />
-      <UnverifiedBanner />
-      <main>{children}</main>
+      {/* Fixed canvas layer — sits above body bg but below all content */}
+      <div aria-hidden="true" style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
+        <HexCanvas />
+      </div>
+      {/* Content layer */}
+      <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', minHeight: '100svh' }}>
+        <Navbar />
+        <UnverifiedBanner />
+        <main style={{ flex: 1 }}>{children}</main>
+      </div>
     </>
   );
 }
