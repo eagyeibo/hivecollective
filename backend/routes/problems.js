@@ -2,6 +2,7 @@ const express = require('express');
 const pool = require('../db');
 const authMiddleware = require('../middleware/auth');
 const { logEvent } = require('../utils/events');
+const jwt = require('jsonwebtoken');
 
 const router = express.Router();
 
@@ -39,7 +40,7 @@ router.get('/', async (req, res) => {
       LEFT JOIN votes v ON v.solution_id = s.id
     `;
 
-    const conditions = [];
+    const conditions = ['p.is_hidden = FALSE'];
     const values = [];
 
     if (scope) {
@@ -96,11 +97,22 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   const { id } = req.params;
 
+  // Optional admin check — lets admins view hidden problems
+  let requesterIsAdmin = false;
+  const authHeader = req.headers['authorization'];
+  if (authHeader?.startsWith('Bearer ')) {
+    try {
+      const decoded = jwt.verify(authHeader.split(' ')[1], process.env.JWT_SECRET);
+      const adminCheck = await pool.query('SELECT is_admin FROM users WHERE id = $1', [decoded.id]);
+      requesterIsAdmin = adminCheck.rows[0]?.is_admin || false;
+    } catch {}
+  }
+
   try {
     const problemResult = await pool.query(
       `SELECT
         p.id, p.title, p.description, p.scope, p.location_tag,
-        p.status, p.tags, p.created_at, p.affected_count,
+        p.status, p.tags, p.created_at, p.affected_count, p.is_hidden,
         u.username AS posted_by, u.id AS user_id
        FROM problems p
        JOIN users u ON u.id = p.user_id
@@ -109,6 +121,10 @@ router.get('/:id', async (req, res) => {
     );
 
     if (problemResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Problem not found.' });
+    }
+
+    if (problemResult.rows[0].is_hidden && !requesterIsAdmin) {
       return res.status(404).json({ error: 'Problem not found.' });
     }
 

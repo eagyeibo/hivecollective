@@ -4,9 +4,11 @@ const authMiddleware = require('../middleware/auth');
 
 const router = express.Router();
 
-// Auto-create is_verified_org column if it doesn't exist
+// Auto-create columns if they don't exist
 pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_verified_org BOOLEAN DEFAULT FALSE`)
   .catch(err => console.error('Failed to add is_verified_org column:', err));
+pool.query(`ALTER TABLE problems ADD COLUMN IF NOT EXISTS is_hidden BOOLEAN DEFAULT FALSE`)
+  .catch(err => console.error('Failed to add is_hidden column:', err));
 
 // Admin middleware — must be logged in AND is_admin = true
 async function adminOnly(req, res, next) {
@@ -231,6 +233,50 @@ router.patch('/users/:id/promote', async (req, res) => {
     return res.json({ user: result.rows[0] });
   } catch (err) {
     console.error('Promote admin error:', err);
+    return res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+// ─────────────────────────────────────────
+// GET /api/admin/problems
+// All problems including hidden ones
+// ─────────────────────────────────────────
+router.get('/problems', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT
+        p.id, p.title, p.status, p.scope, p.location_tag,
+        p.is_hidden, p.created_at,
+        u.username AS posted_by,
+        COUNT(DISTINCT s.id) AS solution_count
+      FROM problems p
+      JOIN users u ON u.id = p.user_id
+      LEFT JOIN solutions s ON s.problem_id = p.id AND s.is_removed = FALSE
+      GROUP BY p.id, u.username
+      ORDER BY p.is_hidden ASC, p.created_at DESC
+    `);
+    return res.json({ problems: result.rows });
+  } catch (err) {
+    console.error('Admin get problems error:', err);
+    return res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+// ─────────────────────────────────────────
+// PATCH /api/admin/problems/:id/hide
+// Toggle is_hidden on a problem
+// ─────────────────────────────────────────
+router.patch('/problems/:id/hide', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await pool.query(
+      'UPDATE problems SET is_hidden = NOT COALESCE(is_hidden, FALSE) WHERE id = $1 RETURNING id, is_hidden',
+      [id]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Problem not found.' });
+    return res.json({ problem: result.rows[0] });
+  } catch (err) {
+    console.error('Toggle hide error:', err);
     return res.status(500).json({ error: 'Server error.' });
   }
 });

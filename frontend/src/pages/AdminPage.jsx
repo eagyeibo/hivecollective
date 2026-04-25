@@ -41,6 +41,7 @@ export default function AdminPage() {
   const [stats, setStats] = useState(null);
   const [reports, setReports] = useState([]);
   const [users, setUsers] = useState([]);
+  const [problems, setProblems] = useState([]);
   const [reportFilter, setReportFilter] = useState('pending');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -51,6 +52,7 @@ export default function AdminPage() {
   useEffect(() => {
     if (tab === 'reports') loadReports();
     if (tab === 'users')   loadUsers();
+    if (tab === 'posts')   loadProblems();
   }, [tab, reportFilter]);
 
   async function loadStats() {
@@ -82,6 +84,24 @@ export default function AdminPage() {
       setUsers(data.users || []);
     } catch {}
     finally { setLoading(false); }
+  }
+
+  async function loadProblems() {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API}/admin/problems`, { headers });
+      const data = await res.json();
+      setProblems(data.problems || []);
+    } catch {}
+    finally { setLoading(false); }
+  }
+
+  async function toggleHide(problemId, currentlyHidden) {
+    const res = await fetch(`${API}/admin/problems/${problemId}/hide`, { method: 'PATCH', headers });
+    const data = await res.json();
+    if (res.ok) {
+      setProblems(p => p.map(x => x.id === problemId ? { ...x, is_hidden: data.problem.is_hidden } : x));
+    }
   }
 
   async function updateReportStatus(reportId, status) {
@@ -130,6 +150,7 @@ export default function AdminPage() {
     { key: 'stats',   label: t('admin.tabStats') },
     { key: 'reports', label: t('admin.tabReports') },
     { key: 'users',   label: t('admin.tabUsers') },
+    { key: 'posts',   label: 'Posts' },
   ];
 
   const REPORT_FILTERS = [
@@ -281,6 +302,57 @@ export default function AdminPage() {
               );
             })}
           </div>
+        </div>
+      )}
+
+      {/* Posts tab */}
+      {!loading && tab === 'posts' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 8 }}>
+            {problems.filter(p => p.is_hidden).length} hidden · {problems.filter(p => !p.is_hidden).length} visible
+          </p>
+          {problems.length === 0 && (
+            <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)', fontSize: 13 }}>No problems found.</div>
+          )}
+          {problems.map(p => (
+            <div key={p.id} style={{
+              background: p.is_hidden ? 'rgba(185,28,28,0.06)' : 'var(--card-bg)',
+              border: `1px solid ${p.is_hidden ? 'rgba(248,113,113,0.25)' : 'var(--border)'}`,
+              borderRadius: 'var(--radius-md)', padding: '13px 16px',
+              display: 'flex', alignItems: 'center', gap: 12, backdropFilter: 'blur(8px)',
+            }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
+                  {p.is_hidden && (
+                    <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 20, background: 'rgba(248,113,113,0.15)', color: '#f87171', border: '1px solid rgba(248,113,113,0.3)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      Hidden
+                    </span>
+                  )}
+                  <span
+                    style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-h)', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                    onClick={() => navigate(`/problems/${p.id}`)}
+                  >
+                    {p.title}
+                  </span>
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'var(--mono)' }}>
+                  by {p.posted_by} · {p.location_tag} · {p.solution_count} solution{p.solution_count !== '1' ? 's' : ''} · {timeAgo(p.created_at)}
+                </div>
+              </div>
+              <button
+                onClick={() => toggleHide(p.id, p.is_hidden)}
+                style={{
+                  fontSize: 12, padding: '5px 14px', borderRadius: 20, boxShadow: 'none', transform: 'none', flexShrink: 0,
+                  background: p.is_hidden ? 'var(--emerald-bg)' : 'rgba(248,113,113,0.1)',
+                  border: `1px solid ${p.is_hidden ? 'var(--emerald-border)' : 'rgba(248,113,113,0.3)'}`,
+                  color: p.is_hidden ? 'var(--emerald)' : '#f87171',
+                  fontWeight: 600,
+                }}
+              >
+                {p.is_hidden ? '👁 Unhide' : '🚫 Hide'}
+              </button>
+            </div>
+          ))}
         </div>
       )}
 

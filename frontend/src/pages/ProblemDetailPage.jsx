@@ -213,6 +213,17 @@ export default function ProblemDetailPage() {
     finally { setBookmarkLoading(false); }
   }
 
+  async function toggleHide() {
+    try {
+      const res = await fetch(`${API}/admin/problems/${id}/hide`, {
+        method: 'PATCH',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (res.ok) setProblem(p => ({ ...p, is_hidden: data.problem.is_hidden }));
+    } catch {}
+  }
+
   async function updateStatus(newStatus) {
     setStatusUpdating(true);
     try {
@@ -230,7 +241,10 @@ export default function ProblemDetailPage() {
   useEffect(() => {
     async function fetchProblem() {
       try {
-        const res = await fetch(`${API}/problems/${id}`);
+        const storedToken2 = localStorage.getItem('token');
+        const res = await fetch(`${API}/problems/${id}`, {
+          headers: storedToken2 ? { 'Authorization': `Bearer ${storedToken2}` } : {},
+        });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error);
         setProblem(data.problem);
@@ -336,6 +350,20 @@ export default function ProblemDetailPage() {
               ⚑ Report
             </button>
           )}
+          {isLoggedIn && user?.is_admin && (
+            <button
+              onClick={toggleHide}
+              title={problem.is_hidden ? 'Make visible to everyone' : 'Hide from public'}
+              style={{
+                ...ghostBtn,
+                background: problem.is_hidden ? 'var(--emerald-bg)' : 'rgba(248,113,113,0.1)',
+                borderColor: problem.is_hidden ? 'var(--emerald-border)' : 'rgba(248,113,113,0.35)',
+                color: problem.is_hidden ? 'var(--emerald)' : '#f87171',
+              }}
+            >
+              {problem.is_hidden ? '👁 Unhide' : '🚫 Hide'}
+            </button>
+          )}
         </div>
       </div>
 
@@ -349,6 +377,14 @@ export default function ProblemDetailPage() {
         backdropFilter: 'blur(12px)',
         boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
       }}>
+        {/* Hidden banner — admin only */}
+        {problem.is_hidden && (
+          <div style={{ background: 'rgba(185,28,28,0.1)', border: '1px solid rgba(248,113,113,0.3)', borderRadius: 'var(--radius-sm)', padding: '9px 14px', marginBottom: 14, fontSize: 13, color: '#f87171', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 15 }}>🚫</span>
+            <span>This post is <strong>hidden from the public</strong>. Only admins can see it.</span>
+          </div>
+        )}
+
         {/* Badges */}
         <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap', alignItems: 'center' }}>
           <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 9px', borderRadius: 20, textTransform: 'uppercase', letterSpacing: '0.3px', ...st }}>
